@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>３Ｄ天球図 — サインを使わない占星術</title>
+<style>
+/* ============================================================
+   リセット & ベース
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+  font-size: 14px;
+  background: #ffffff;
+  color: #333333;
+  line-height: 1.6;
+  padding: 0 0 2rem;
+}
+
+/* ============================================================
+   レイアウト
+   ============================================================ */
+#app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* ── 見出し ── */
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #444;
+  margin: 1.2rem 0 0.6rem;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* ── 日時パネル ── */
+#datetime-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  background: #f8f9fc;
+  border: 1px solid #dde3f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+}
+#datetime-panel label {
+  font-size: 12px;
+  color: #556;
+  font-weight: 500;
+}
+#datetime-panel input[type=date],
+#datetime-panel input[type=time] {
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 1px solid #ccd;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+}
+#jd-display {
+  font-size: 11px;
+  color: #778;
+  margin-left: 4px;
+}
+
+/* ── ボタン共通 ── */
+button {
+  font-size: 12px;
+  padding: 4px 11px;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  color: #444;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+button:hover { background: #f0f4ff; }
+button.btn-primary {
+  background: #4a6fa5;
+  color: #fff;
+  border-color: #3a5f95;
+  font-weight: 600;
+}
+button.btn-primary:hover { background: #3a5f95; }
+button.btn-now {
+  background: #f5f5f5;
+}
+
+/* ── トグルボタン群 ── */
+#controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+#controls .ctrl-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+#controls .ctrl-label {
+  font-size: 11px;
+  color: #888;
+  margin-right: 2px;
+  white-space: nowrap;
+}
+#controls .ctrl-sep {
+  width: 1px; height: 20px;
+  background: #ddd;
+  margin: 0 4px;
+}
+button.toggled-off { opacity: 0.38; }
+
+/* ── キャンバス ── */
+#canvas-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  overflow: hidden;
+  background: #fff;
+  touch-action: none;
+}
+canvas { display: block; width: 100%; }
+
+/* ── ツールチップ ── */
+#tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(255,255,255,0.96);
+  border: 1px solid #ccc;
+  border-radius: 7px;
+  padding: 7px 11px;
+  font-size: 12px;
+  color: #333;
+  display: none;
+  max-width: 240px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  z-index: 10;
+}
+
+/* ── 凡例 ── */
+.legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+  font-size: 11px;
+  color: #666;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.leg-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.leg-line {
+  width: 18px; height: 2px;
+  flex-shrink: 0;
+}
+
+/* ── コンジャンクション表 ── */
+.conj-section {
+  margin-top: 1.2rem;
+  overflow-x: auto;
+}
+#conj-table {
+  border-collapse: collapse;
+  font-size: 11px;
+  color: #444;
+  width: 100%;
+  min-width: 480px;
+}
+#conj-table th {
+  background: #f3f5f9;
+  border: 1px solid #ddd;
+  padding: 5px 10px;
+  text-align: center;
+  white-space: nowrap;
+  font-weight: 600;
+  color: #555;
+}
+#conj-table td {
+  border: 1px solid #e8e8e8;
+  padding: 4px 10px;
+  vertical-align: top;
+}
+
+/* ── 注記 ── */
+.note {
+  font-size: 11px;
+  color: #999;
+  line-height: 1.7;
+  margin-top: 0.8rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #eee;
+}
+
+/* ── 操作説明 ── */
+.hint {
+  font-size: 11px;
+  color: #999;
+  margin: 4px 0 6px;
+}
+
+/* ── チェックボックス ── */
+label.chk-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #555;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── 日時入力 ── -->
+  <div class="section-title">📅 日時設定（JST）</div>
+  <div id="datetime-panel">
+    <label>日付</label>
+    <input type="date" id="inp-date">
+    <label style="margin-left:6px;">時刻</label>
+    <input type="time" id="inp-time">
+    <button class="btn-primary" onclick="applyDatetime()">⟳ 更新</button>
+    <button class="btn-now" onclick="setNow()">⚡ 現在時刻</button>
+    <span id="jd-display"></span>
+  </div>
+
+  <!-- ── 表示トグル ── -->
+  <div class="section-title">🔭 表示切り替え</div>
+  <div id="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">恒星</span>
+      <button id="btn-stars1" onclick="toggle('stars1')">１等星</button>
+      <button id="btn-stars2" onclick="toggle('stars2')">２等星</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">天体</span>
+      <button id="btn-planets" onclick="toggle('planets')">惑星</button>
+      <button id="btn-sun"     onclick="toggle('sun')">太陽</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">円・線</span>
+      <button id="btn-equator"  onclick="toggle('equator')">天の赤道</button>
+      <button id="btn-ecliptic" onclick="toggle('ecliptic')">黄道</button>
+      <button id="btn-signs"    onclick="toggle('signs')">黄道30°分割</button>
+      <button id="btn-moonpath" onclick="toggle('moonpath')">白道</button>
+      <button id="btn-axis"     onclick="toggle('axis')">黄道極軸</button>
+      <button id="btn-earthax"  onclick="toggle('earthax')">地軸</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">視点</span>
+      <button id="btn-view-nep" onclick="setView('nep')" title="黄道北極から見る">🌐 黄道北極</button>
+      <button id="btn-view-sep" onclick="setView('sep')" title="黄道南極から見る">🌐 黄道南極</button>
+      <button id="btn-view-free" onclick="setView('free')">↩ 自由</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <label class="chk-label">
+      <input type="checkbox" id="autorot" checked onchange="autoRotate=this.checked">
+      自動回転
+    </label>
+  </div>
+
+  <!-- ── キャンバス ── -->
+  <div id="canvas-wrap">
+    <canvas id="c"></canvas>
+    <div id="tooltip"></div>
+  </div>
+  <p class="hint">ドラッグで回転 ／ スクロールでズーム（スマホ：ピンチでズーム対応）</p>
+
+  <!-- ── 凡例 ── -->
+  <div class="legend">
+    <div class="legend-item"><div class="leg-dot" style="background:#223;width:10px;height:10px;"></div>１等星以上</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#889;width:7px;height:7px;"></div>２等星</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#ffe060;border:1px solid #cc8800;"></div>太陽</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#d0d0e0;border:1px solid #aaa;"></div>月</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#888877;"></div>水星</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#aaaa00;"></div>金星</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#dd3311;"></div>火星</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#bb8820;"></div>木星</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#998820;"></div>土星</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#88cc99;"></div>キロン</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#55ccdd;"></div>天王星</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#3355cc;"></div>海王星</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#cc88bb;"></div>冥王星</div>
+    <div class="legend-item"><div class="leg-line" style="border-top:2px dashed #e03030;height:0;"></div>天の赤道</div>
+    <div class="legend-item"><div class="leg-line" style="background:#cc9900;"></div>黄道</div>
+    <div class="legend-item"><div class="leg-line" style="background:#cc9900;opacity:0.5;"></div>黄道30°分割</div>
+    <div class="legend-item"><div class="leg-line" style="border-top:2px dashed #99bbdd;height:0;"></div>白道</div>
+    <div class="legend-item"><div class="leg-dot" style="background:#ffcc00;"></div>二至二分点</div>
+    <div class="legend-item"><div class="leg-line" style="background:#cc9900;opacity:0.4;"></div>黄道極軸</div>
+    <div class="legend-item"><div class="leg-line" style="background:#3388ff;opacity:0.6;"></div>地軸</div>
+  </div>
+
+  <!-- ── コンジャンクション表 ── -->
+  <div class="section-title" style="margin-top:1.4rem;">🔗 コンジャンクション表（現在の日時）</div>
+  <div class="conj-section">
+    <table id="conj-table">
+      <thead>
+        <tr>
+          <th>天体</th>
+          <th>黄経 ±1° 以内</th>
+          <th>黄経 ±3° 以内</th>
+          <th>赤緯 ±1° 以内</th>
+        </tr>
+      </thead>
+      <tbody id="conj-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- ── 注記 ── -->
+  <p class="note">
+    天体位置計算：Jean Meeus <em>「Astronomical Algorithms」</em> (Willmann-Bell, 1991) に基づく近似式 ／
+    恒星データ：Yale Bright Star Catalogue / Hipparcos カタログ相当値<br>
+    NASA JPL 簡易データ使用のため、数分角〜0.5° 程度の誤差があります。
+    特に天王星・海王星・冥王星の位置に数日〜1ヶ月程度の誤差が生じます。
+    精密な天文計算にはご使用にならないください。
+  </p>
+</div>
+
+<!-- ============================================================
+   JavaScript
+   ============================================================ -->
+<script>
+/* ────────────────────────────────────────────────────────────
+   定数・変換ユーティリティ
+──────────────────────────────────────────────────────────── */
+const DEG  = Math.PI / 180;
+const TILT = 23.4394 * DEG; // 黄道傾斜角
+
+/** 黄道座標 → 赤道直角座標（球面上） */
+function eclToXYZ(lam_deg, bet_deg, r) {
+  const λ = lam_deg * DEG, β = bet_deg * DEG;
+  const xe = r * Math.cos(β) * Math.cos(λ);
+  const ye = r * Math.cos(β) * Math.sin(λ);
+  const ze = r * Math.sin(β);
+  return { x: xe, y: ye * Math.cos(TILT) - ze * Math.sin(TILT), z: ye * Math.sin(TILT) + ze * Math.cos(TILT) };
+}
+/** 赤道座標（RA/Dec） → 直角座標 */
+function raDecToXYZ(ra, dec, r) {
+  const raR = ra * DEG, decR = dec * DEG;
+  return { x: r * Math.cos(decR) * Math.cos(raR), y: r * Math.sin(decR), z: r * Math.cos(decR) * Math.sin(raR) };
+}
+/** 黄道経緯度 → RA/Dec */
+function eclToRaDec(lam_deg, bet_deg) {
+  const λ = lam_deg * DEG, β = bet_deg * DEG;
+  const sinDec = Math.sin(β) * Math.cos(TILT) + Math.cos(β) * Math.sin(TILT) * Math.sin(λ);
+  const dec = Math.asin(Math.max(-1, Math.min(1, sinDec))) / DEG;
+  let ra = Math.atan2(Math.sin(λ) * Math.cos(TILT) - Math.tan(β) * Math.sin(TILT), Math.cos(λ)) / DEG;
+  if (ra < 0) ra += 360;
+  return { ra, dec };
+}
+/** RA/Dec → 黄道経緯度 */
+function raDecToEcl(ra, dec) {
+  const raR = ra * DEG, decR = dec * DEG;
+  const sinBet = Math.sin(decR) * Math.cos(TILT) - Math.cos(decR) * Math.sin(TILT) * Math.sin(raR);
+  const bet = Math.asin(Math.max(-1, Math.min(1, sinBet))) / DEG;
+  let lam = Math.atan2(Math.sin(raR) * Math.cos(TILT) + Math.tan(decR) * Math.sin(TILT), Math.cos(raR)) / DEG;
+  if (lam < 0) lam += 360;
+  return { lam, bet };
+}
+
+/* ────────────────────────────────────────────────────────────
+   ユリウス日・時刻
+──────────────────────────────────────────────────────────── */
+function jstToJD(dateStr, timeStr) {
+  const [y, mo, d] = dateStr.split('-').map(Number);
+  const [h, mi]    = timeStr.split(':').map(Number);
+  let utcH = h - 9, day = d, month = mo, year = y;
+  if (utcH < 0) { utcH += 24; day--; }
+  const ut = utcH + mi / 60;
+  let yr = year, mn = month;
+  if (month <= 2) { yr--; mn += 12; }
+  const A = Math.floor(yr / 100), B = 2 - A + Math.floor(A / 4);
+  return Math.floor(365.25 * (yr + 4716)) + Math.floor(30.6001 * (mn + 1)) + day + ut / 24 + B - 1524.5;
+}
+function jdToT(jd) { return (jd - 2451545.0) / 36525.0; }
+
+/* ────────────────────────────────────────────────────────────
+   天体位置計算
+──────────────────────────────────────────────────────────── */
+/** 太陽黄経（度） */
+function sunLongitude(T) {
+  const L0 = 280.46646 + 36000.76983 * T;
+  const M  = (357.52911 + 35999.05029 * T) * DEG;
+  const C  = (1.914602 - 0.004817 * T) * Math.sin(M) + 0.019993 * Math.sin(2 * M);
+  return ((L0 + C) % 360 + 360) % 360;
+}
+
+/** 月の RA/Dec */
+function moonPosition(T) {
+  const Lm  = ((218.3164477 + 481267.88123421 * T) % 360 + 360) % 360;
+  const M   = ((357.52911   +  35999.05029 * T) % 360 + 360) % 360;
+  const Mm  = ((134.9633964 + 477198.8675055 * T) % 360 + 360) % 360;
+  const D   = ((297.8501921 + 445267.1114034 * T) % 360 + 360) % 360;
+  const F   = (( 93.2720950 + 483202.0175233 * T) % 360 + 360) % 360;
+  const Mmr = Mm * DEG, Dr = D * DEG, Fr = F * DEG, Mr = M * DEG;
+  let lam = Lm + 6.2886 * Math.sin(Mmr) + 1.274 * Math.sin(2 * Dr - Mmr)
+    + 0.6583 * Math.sin(2 * Dr) + 0.2136 * Math.sin(2 * Mmr)
+    - 0.1851 * Math.sin(Mr) - 0.1143 * Math.sin(2 * Fr)
+    + 0.0588 * Math.sin(2 * Dr - 2 * Mmr) + 0.0572 * Math.sin(2 * Dr - Mr - Mmr)
+    + 0.0533 * Math.sin(2 * Dr + Mmr);
+  let bet = 5.1282 * Math.sin(Fr) + 0.2806 * Math.sin(Mmr + Fr)
+    + 0.2777 * Math.sin(Mmr - Fr) + 0.1732 * Math.sin(2 * Dr - Fr)
+    + 0.0554 * Math.sin(2 * Dr + Fr - Mmr)
+    - 0.0462 * Math.sin(2 * Dr - Fr - Mmr) - 0.0452 * Math.sin(2 * Dr + Fr);
+  lam = ((lam % 360) + 360) % 360;
+  return eclToRaDec(lam, bet);
+}
+
+/** 惑星ケプラー軌道要素（J2000.0） */
+const PLANET_EL = {
+  Mercury: [0.38710, 0, 0.20563,  0.00002,  7.00498, -0.00590, 252.25032, 149472.67411,  77.45779,  0.15940, 48.33076, -0.12534],
+  Venus:   [0.72333, 0, 0.00677, -0.00005,  3.39467, -0.00788, 181.97973,  58517.81538, 131.60246,  0.00268, 76.67984, -0.27769],
+  Mars:    [1.52366, 0, 0.09340,  0.00009,  1.84969, -0.00811, 355.45332,  19140.30268, 336.04084,  0.44441, 49.55953, -0.29257],
+  Jupiter: [5.20336, 0, 0.04839, -0.00013,  1.30530, -0.00183,  34.40438,   3034.74612,  14.72847,  0.21066,100.47390,  0.20469],
+  Saturn:  [9.53707, 0, 0.05415, -0.00050,  2.48446,  0.00412,  49.94432,   1222.49309,  92.43194, -0.36762,113.66242, -0.28889],
+  Uranus:  [19.1914, 0, 0.04717, -0.00003,  0.76986, -0.00529, 313.23218,    428.48202, 170.96424,  0.40667, 74.01693,  0.04240],
+  Neptune: [30.0690, 0, 0.00859,  0.00005,  1.76917, -0.00956, -55.12002,    218.45945,  44.96476, -0.32544,131.78422, -0.00946],
+};
+function planetPosition(name, T) {
+  const el = PLANET_EL[name]; if (!el) return null;
+  const [a0,,e0,de,i0,di,L0,dL,w0,dw,O0,dO] = el;
+  const e = e0 + de * T / 100;
+  const i = (i0 + di * T / 100) * DEG;
+  const L = ((L0 + dL / 100 * T) % 360 + 360) % 360;
+  const w = ((w0 + dw / 100 * T) % 360 + 360) % 360;
+  const O = ((O0 + dO / 100 * T) % 360 + 360) % 360;
+  let M = ((L - w) % 360 + 360) % 360; M *= DEG;
+  let E = M; for (let k = 0; k < 10; k++) E = M + e * Math.sin(E);
+  const nu = 2 * Math.atan2(Math.sqrt(1+e)*Math.sin(E/2), Math.sqrt(1-e)*Math.cos(E/2));
+  const omega = ((w - O) * DEG + 2*Math.PI) % (2*Math.PI);
+  const r = a0 * (1 - e * Math.cos(E)), xO = r * Math.cos(nu), yO = r * Math.sin(nu);
+  const cosO=Math.cos(O*DEG),sinO=Math.sin(O*DEG),cosI=Math.cos(i),sinI=Math.sin(i),cosw=Math.cos(omega),sinw=Math.sin(omega);
+  const xe=(cosO*cosw-sinO*sinw*cosI)*xO+(-cosO*sinw-sinO*cosw*cosI)*yO;
+  const ye=(sinO*cosw+cosO*sinw*cosI)*xO+(-sinO*sinw+cosO*cosw*cosI)*yO;
+  const ze=(sinw*sinI)*xO+(cosw*sinI)*yO;
+  let lam=Math.atan2(ye,xe)/DEG, bet=Math.atan2(ze,Math.sqrt(xe*xe+ye*ye))/DEG;
+  lam=((lam%360)+360)%360;
+  return eclToRaDec(lam,bet);
+}
+
+/** 冥王星（簡易式） */
+function plutoPosition(T) {
+  const J=34.35+3034.9057*T, P=238.96+144.9600*T;
+  const Jr=J*DEG;
+  let lam=P+(-19.799+19.848*T)*Math.sin(Jr)+(0.897-4.956*T)*Math.sin(2*Jr)+(0.610+1.211*T)*Math.sin(3*Jr)-12.326*Math.cos(Jr);
+  let bet=-3.908+(6.018+0.010*T)*Math.cos(Jr)+(-0.066+0.014*T)*Math.cos(2*Jr)+(-0.050+0.022*T)*Math.sin(Jr);
+  lam=((lam%360)+360)%360;
+  return eclToRaDec(lam,bet);
+}
+
+/** キロン（2060 Chiron）軌道計算 */
+function chironPosition(T) {
+  const JD = 2451545.0 + T * 36525.0;
+  const a=13.6448, e=0.3823;
+  const i=6.9305*DEG, O=209.123*DEG, w=339.595*DEG;
+  const n=360.0/(Math.pow(a,1.5)*365.25);
+  const M0=43.823*DEG, dJD=JD-2459600.5;
+  let M=((M0+n*dJD*DEG)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+  let E=M; for(let k=0;k<15;k++) E=M+e*Math.sin(E);
+  const nu=2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2),Math.sqrt(1-e)*Math.cos(E/2));
+  const r=a*(1-e*Math.cos(E)), xO=r*Math.cos(nu), yO=r*Math.sin(nu);
+  const cosO=Math.cos(O),sinO=Math.sin(O),cosI=Math.cos(i),sinI=Math.sin(i),cosw=Math.cos(w),sinw=Math.sin(w);
+  const xe=(cosO*cosw-sinO*sinw*cosI)*xO+(-cosO*sinw-sinO*cosw*cosI)*yO;
+  const ye=(sinO*cosw+cosO*sinw*cosI)*xO+(-sinO*sinw+cosO*cosw*cosI)*yO;
+  const ze=(sinw*sinI)*xO+(cosw*sinI)*yO;
+  let lam=Math.atan2(ye,xe)/DEG, bet=Math.atan2(ze,Math.sqrt(xe*xe+ye*ye))/DEG;
+  lam=((lam%360)+360)%360;
+  return eclToRaDec(lam,bet);
+}
+
+/* ────────────────────────────────────────────────────────────
+   天体一覧
+──────────────────────────────────────────────────────────── */
+let planets = [
+  { name:'太陽',   ra:0, dec:0, col:'#ffe060', sun:true },
+  { name:'月',     ra:0, dec:0, col:'#bbbbcc', moon:true },
+  { name:'水星',   ra:0, dec:0, col:'#888877' },
+  { name:'金星',   ra:0, dec:0, col:'#aaaa00' },
+  { name:'火星',   ra:0, dec:0, col:'#dd3311' },
+  { name:'木星',   ra:0, dec:0, col:'#bb8820' },
+  { name:'土星',   ra:0, dec:0, col:'#998820' },
+  { name:'キロン', ra:0, dec:0, col:'#88cc99', chiron:true },
+  { name:'天王星', ra:0, dec:0, col:'#55ccdd', outer:true },
+  { name:'海王星', ra:0, dec:0, col:'#3355cc', outer:true },
+  { name:'冥王星', ra:0, dec:0, col:'#cc88bb', outer:true },
+];
+
+/* ────────────────────────────────────────────────────────────
+   恒星データ（Yale BSC / Hipparcos 相当値）
+──────────────────────────────────────────────────────────── */
+const STARS = [
+  // ─ 1等星以上 (mag < 1.5) ─
+  {name:'シリウス',           ra:101.287, dec:-16.716, mag:-1.46},
+  {name:'カノープス',         ra: 95.988, dec:-52.696, mag:-0.74},
+  {name:'アルクトゥルス',     ra:213.915, dec: 19.182, mag:-0.05},
+  {name:'リギル・ケンタウルス',ra:219.902,dec:-60.834, mag:-0.01},
+  {name:'ベガ',               ra:279.235, dec: 38.784, mag: 0.03},
+  {name:'カペラ',             ra: 79.172, dec: 45.998, mag: 0.08},
+  {name:'リゲル',             ra: 78.634, dec: -8.202, mag: 0.13},
+  {name:'プロキオン',         ra:114.825, dec:  5.225, mag: 0.34},
+  {name:'アケルナル',         ra: 24.429, dec:-57.237, mag: 0.46},
+  {name:'ベテルギウス',       ra: 88.793, dec:  7.407, mag: 0.50},
+  {name:'ハダル',             ra:210.956, dec:-60.373, mag: 0.61},
+  {name:'アルタイル',         ra:297.696, dec:  8.868, mag: 0.77},
+  {name:'アクルックス',       ra:186.650, dec:-63.099, mag: 0.76},
+  {name:'アルデバラン',       ra: 68.980, dec: 16.509, mag: 0.85},
+  {name:'スピカ',             ra:201.298, dec:-11.161, mag: 0.97},
+  {name:'アンタレス',         ra:247.352, dec:-26.432, mag: 1.06},
+  {name:'ポルックス',         ra:116.329, dec: 28.026, mag: 1.14},
+  {name:'フォーマルハウト',   ra:344.413, dec:-29.622, mag: 1.16},
+  {name:'ミモザ',             ra:191.930, dec:-59.689, mag: 1.25},
+  {name:'デネブ',             ra:310.358, dec: 45.280, mag: 1.25},
+  {name:'レグルス',           ra:152.093, dec: 11.967, mag: 1.35},
+  {name:'アダラ',             ra:104.656, dec:-28.972, mag: 1.50},
+  // ─ 2等星 (1.5 ≤ mag < 2.5) ─
+  {name:'ガクルックス',       ra:187.791, dec:-57.113, mag: 1.59},
+  {name:'カストル',           ra:113.649, dec: 31.888, mag: 1.57},
+  {name:'ベラトリックス',     ra: 81.283, dec:  6.350, mag: 1.64},
+  {name:'アルニラム',         ra: 84.053, dec: -1.202, mag: 1.69},
+  {name:'アルナイル',         ra:332.058, dec:-46.961, mag: 1.74},
+  {name:'アリオト',           ra:193.507, dec: 55.960, mag: 1.77},
+  {name:'ドゥベ',             ra:165.932, dec: 61.751, mag: 1.79},
+  {name:'アヴィオール',       ra:125.628, dec:-59.510, mag: 1.86},
+  {name:'アルカイド',         ra:206.885, dec: 49.313, mag: 1.86},
+  {name:'ムリファイン',       ra:122.383, dec:-47.336, mag: 1.84},
+  {name:'ポラリス',           ra:  2.530, dec: 89.264, mag: 1.97},
+  {name:'ミルザム',           ra: 95.675, dec:-17.956, mag: 1.98},
+  {name:'アルファルド',       ra:141.897, dec: -8.658, mag: 1.99},
+  {name:'ハマル',             ra: 28.660, dec: 23.462, mag: 2.01},
+  {name:'サイフ',             ra: 76.962, dec: -9.670, mag: 2.07},
+  {name:'ミラク',             ra: 17.433, dec: 35.620, mag: 2.07},
+  {name:'ラス・アルハゲ',     ra:263.734, dec: 12.560, mag: 2.08},
+  {name:'ヌンキ',             ra:283.816, dec:-26.297, mag: 2.05},
+  {name:'デネボラ',           ra:177.265, dec: 14.572, mag: 2.14},
+  {name:'ミザール',           ra:200.981, dec: 54.926, mag: 2.27},
+  {name:'ナオス',             ra:120.896, dec:-40.003, mag: 2.25},
+  {name:'エニフ',             ra:326.046, dec:  9.875, mag: 2.38},
+  {name:'サビク',             ra:257.595, dec:-15.724, mag: 2.43},
+  {name:'シェアト',           ra:345.943, dec: 28.083, mag: 2.44},
+  {name:'アルデラミン',       ra:319.645, dec: 62.585, mag: 2.45},
+  {name:'マルカブ',           ra:346.190, dec: 15.205, mag: 2.49},
+];
+
+/* ────────────────────────────────────────────────────────────
+   二至二分点
+──────────────────────────────────────────────────────────── */
+const NODES = [
+  {lam:  0, label:'春分点', offset:[8, 4]},
+  {lam: 90, label:'夏至点', offset:[8, 4]},
+  {lam:180, label:'秋分点', offset:[8, 4]},
+  {lam:270, label:'冬至点', offset:[8, 4]},
+];
+
+/* ────────────────────────────────────────────────────────────
+   日時管理
+──────────────────────────────────────────────────────────── */
+let currentJD = 0, currentT = 0;
+
+function setNow() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('inp-date').value =
+    `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  document.getElementById('inp-time').value =
+    `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  applyDatetime();
+}
+
+function applyDatetime() {
+  const ds = document.getElementById('inp-date').value;
+  const ts = document.getElementById('inp-time').value || '00:00';
+  if (!ds) return;
+  currentJD = jstToJD(ds, ts);
+  currentT  = jdToT(currentJD);
+  document.getElementById('jd-display').textContent =
+    `JD ${currentJD.toFixed(4)}  T = ${currentT.toFixed(6)} cy`;
+  updatePlanetPositions();
+  buildConjTable();
+}
+
+function updatePlanetPositions() {
+  const T = currentT;
+  // 太陽
+  const sunLon = sunLongitude(T), sunPos = eclToRaDec(sunLon, 0);
+  const sun = planets.find(p => p.sun);
+  if (sun) { sun.ra = sunPos.ra; sun.dec = sunPos.dec; sun.eclLon = sunLon; }
+  // 月
+  const moonPos = moonPosition(T);
+  const moon = planets.find(p => p.moon);
+  if (moon) { moon.ra = moonPos.ra; moon.dec = moonPos.dec; moon.age = ((moonPos.ra - sunPos.ra + 360) % 360) / 360 * 29.53; }
+  // 惑星
+  const pmap = {水星:'Mercury',金星:'Venus',火星:'Mars',木星:'Jupiter',土星:'Saturn',天王星:'Uranus',海王星:'Neptune'};
+  for (const [jp,en] of Object.entries(pmap)) {
+    const pos = planetPosition(en,T), pl = planets.find(p=>p.name===jp);
+    if (pl && pos) { pl.ra = pos.ra; pl.dec = pos.dec; }
+  }
+  // 冥王星
+  const plPos = plutoPosition(T), pluto = planets.find(p=>p.name==='冥王星');
+  if (pluto) { pluto.ra = plPos.ra; pluto.dec = plPos.dec; }
+  // キロン
+  const chPos = chironPosition(T), chiron = planets.find(p=>p.chiron);
+  if (chiron) { chiron.ra = chPos.ra; chiron.dec = chPos.dec; }
+}
+
+/* ────────────────────────────────────────────────────────────
+   描画エンジン
+──────────────────────────────────────────────────────────── */
+const canvas  = document.getElementById('c');
+const ctx     = canvas.getContext('2d');
+const tooltip = document.getElementById('tooltip');
+
+let W, H, cx, cy;
+let rotX = 0.45, rotY = 0.0;
+let autoRotate = true;
+let dragging = false, lastMX = 0, lastMY = 0;
+let zoom = 1;
+let layers = { stars1:true, stars2:true, planets:true, equator:true, ecliptic:true, signs:true, axis:true, earthax:true, sun:true, moonpath:true };
+let lockedView = null;
+
+function resize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = rect.width;
+  H = Math.min(rect.width * 0.72, 530);
+  canvas.width  = W;
+  canvas.height = H;
+  cx = W / 2; cy = H / 2;
+}
+
+function project(p) {
+  const cosX=Math.cos(rotX), sinX=Math.sin(rotX), cosY=Math.cos(rotY), sinY=Math.sin(rotY);
+  const nx =  p.x * cosY + p.z * sinY;
+  const ny = -p.x * sinY * sinX + p.y * cosX + p.z * cosY * sinX;
+  const nz = -p.x * sinY * cosX - p.y * sinX + p.z * cosY * cosX;
+  const fov = 600 * zoom, sc = fov / (fov + nz + 200);
+  const R = Math.min(W, H) / 2.2;
+  return { sx: cx + nx*sc*R, sy: cy - ny*sc*R, depth: nz };
+}
+
+function alpha(depth, lo=0.12, hi=1.0) {
+  return Math.max(lo, Math.min(hi, (depth + 1.5) / 2.2));
+}
+
+function drawSegments(pts, colorFn, lw, dash=[]) {
+  ctx.lineWidth = lw; ctx.setLineDash(dash);
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = project(pts[i]), p1 = project(pts[i+1]);
+    ctx.strokeStyle = colorFn((p0.depth + p1.depth) / 2);
+    ctx.beginPath(); ctx.moveTo(p0.sx, p0.sy); ctx.lineTo(p1.sx, p1.sy); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+
+function makeAxisPts(a, b, steps=40) {
+  return Array.from({length:steps+1}, (_,i) => {
+    const t = i/steps;
+    return {x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t, z:a.z+(b.z-a.z)*t};
+  });
+}
+
+function drawPole(p, color, label) {
+  const pr = project(p), a = alpha(pr.depth, 0.4, 1.0);
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.beginPath(); ctx.arc(pr.sx, pr.sy, 4, 0, Math.PI*2);
+  ctx.fillStyle = color; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.fillStyle = color; ctx.font = '10px sans-serif';
+  ctx.fillText(label, pr.sx + 6, pr.sy + 4);
+  ctx.restore();
+}
+
+function drawMoon(obj, moonAge) {
+  const r = obj.size;
+  const phase = ((moonAge % 29.53) + 29.53) % 29.53;
+  const illum = (1 - Math.cos(phase / 29.53 * 2 * Math.PI)) / 2;
+  const q = Math.abs(2 * illum - 1);
+  const waxing = phase < 14.77;
+  ctx.beginPath(); ctx.arc(obj.sx, obj.sy, r, 0, Math.PI*2);
+  ctx.fillStyle = '#d0d0e0'; ctx.fill();
+  ctx.save();
+  ctx.beginPath(); ctx.arc(obj.sx, obj.sy, r, Math.PI/2, 3*Math.PI/2); ctx.closePath();
+  if (waxing) {
+    ctx.fillStyle = '#44505a'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(obj.sx, obj.sy, r*q, r, 0, Math.PI/2, 3*Math.PI/2, illum < 0.5);
+    ctx.closePath(); ctx.fillStyle = illum < 0.5 ? '#44505a' : '#d0d0e0'; ctx.fill();
+  } else {
+    ctx.restore(); ctx.save();
+    ctx.beginPath(); ctx.arc(obj.sx, obj.sy, r, -Math.PI/2, Math.PI/2); ctx.closePath();
+    ctx.fillStyle = '#44505a'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(obj.sx, obj.sy, r*q, r, 0, -Math.PI/2, Math.PI/2, illum >= 0.5);
+    ctx.closePath(); ctx.fillStyle = illum >= 0.5 ? '#44505a' : '#d0d0e0'; ctx.fill();
+  }
+  ctx.restore();
+  ctx.beginPath(); ctx.arc(obj.sx, obj.sy, r, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(180,180,200,0.7)'; ctx.lineWidth = 0.8; ctx.stroke();
+}
+
+function drawSun(obj) {
+  const r = obj.size;
+  const g = ctx.createRadialGradient(obj.sx, obj.sy, r*0.7, obj.sx, obj.sy, r*2.2);
+  g.addColorStop(0, 'rgba(255,220,60,0.55)'); g.addColorStop(1, 'rgba(255,200,0,0)');
+  ctx.beginPath(); ctx.arc(obj.sx, obj.sy, r*2.2, 0, Math.PI*2);
+  ctx.fillStyle = g; ctx.fill();
+  ctx.beginPath(); ctx.arc(obj.sx, obj.sy, r, 0, Math.PI*2);
+  ctx.fillStyle = '#ffe060'; ctx.fill();
+  ctx.strokeStyle = '#cc8800'; ctx.lineWidth = 0.8; ctx.stroke();
+}
+
+let lastObjs = [];
+
+function drawSphere() {
+  ctx.clearRect(0,0,W,H); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,W,H);
+  // 経緯線グリッド
+  for (let dec = -75; dec <= 75; dec += 30) {
+    const pts = []; for (let ra=0; ra<=360; ra+=3) pts.push(raDecToXYZ(ra, dec, 1));
+    drawSegments(pts, d => `rgba(120,160,200,${alpha(d,0.05,0.2)})`, 0.4);
+  }
+  for (let ra = 0; ra < 360; ra += 30) {
+    const pts = []; for (let dec=-90; dec<=90; dec+=4) pts.push(raDecToXYZ(ra, dec, 1));
+    drawSegments(pts, d => `rgba(120,160,200,${alpha(d,0.05,0.2)})`, 0.4);
+  }
+  // 天の赤道
+  if (layers.equator) {
+    const eq = []; for (let r=0; r<=360; r+=3) eq.push(raDecToXYZ(r, 0, 1.005));
+    drawSegments(eq, d => `rgba(210,30,30,${alpha(d,0.2,0.9)})`, 1.8, [5,4]);
+    const lp = project(raDecToXYZ(175, 2, 1.02));
+    ctx.fillStyle = 'rgba(210,30,30,0.8)'; ctx.font = '10px sans-serif';
+    ctx.fillText('天の赤道', lp.sx+3, lp.sy);
+  }
+  // 黄道
+  if (layers.ecliptic) {
+    const ep = []; for (let l=0; l<=360; l+=2) ep.push(eclToXYZ(l, 0, 1.006));
+    drawSegments(ep, d => `rgba(200,155,0,${alpha(d,0.2,1.0)})`, 2.2);
+  }
+  // 黄道30°分割（サイン名は表示しない）
+  if (layers.signs) {
+    for (let i = 0; i < 12; i++) {
+      const pts = []; for (let b=-90; b<=90; b+=3) pts.push(eclToXYZ(i*30, b, 1.007));
+      drawSegments(pts, d => `rgba(190,145,0,${alpha(d,0.12,0.6)})`, 0.8);
+    }
+  }
+  // 二至二分点
+  NODES.forEach(n => {
+    const p = eclToXYZ(n.lam, 0, 1.012), pr = project(p), a = alpha(pr.depth, 0.5, 1.0);
+    ctx.save(); ctx.globalAlpha = a;
+    ctx.beginPath(); ctx.arc(pr.sx, pr.sy, 5, 0, Math.PI*2);
+    ctx.fillStyle = '#ffcc00'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8; ctx.stroke();
+    ctx.fillStyle = 'rgba(150,100,0,0.95)'; ctx.font = '10px sans-serif';
+    ctx.fillText(n.label, pr.sx + n.offset[0], pr.sy + n.offset[1]);
+    ctx.restore();
+  });
+  // 黄道極軸
+  if (layers.axis) {
+    const nep = eclToXYZ(0, 90, 1.15), sep = eclToXYZ(0, -90, 1.15);
+    drawSegments(makeAxisPts(nep,sep), d => `rgba(200,160,0,${alpha(d,0.12,0.6)})`, 1.6);
+    drawPole(nep, '#cc9900', 'NEP'); drawPole(sep, '#cc9900', 'SEP');
+  }
+  // 地軸
+  if (layers.earthax) {
+    const ncp = raDecToXYZ(0, 90, 1.12), scp = raDecToXYZ(0, -90, 1.12);
+    drawSegments(makeAxisPts(ncp,scp), d => `rgba(30,100,220,${alpha(d,0.15,0.75)})`, 1.6);
+    drawPole(ncp, '#2266cc', 'NCP'); drawPole(scp, '#2266cc', 'SCP');
+  }
+  // 白道（月の軌道面）
+  if (layers.moonpath) {
+    const MOON_INC = 5.1454 * DEG;
+    const nnLon = ((125.0445479 - 1934.1362608 * currentT) % 360 + 360) % 360;
+    const Oa = nnLon * DEG;
+    const moonPts = [];
+    for (let lam = 0; lam <= 360; lam += 2) {
+      const lR = lam * DEG;
+      const x0 = Math.cos(lR), y0 = Math.cos(MOON_INC)*Math.sin(lR), z0 = Math.sin(MOON_INC)*Math.sin(lR);
+      const xecl = x0*Math.cos(Oa)-y0*Math.sin(Oa), yecl = x0*Math.sin(Oa)+y0*Math.cos(Oa), zecl = z0;
+      moonPts.push({x:xecl*1.008, y:(yecl*Math.cos(TILT)-zecl*Math.sin(TILT))*1.008, z:(yecl*Math.sin(TILT)+zecl*Math.cos(TILT))*1.008});
+    }
+    drawSegments(moonPts, d => `rgba(160,190,220,${alpha(d,0.2,0.85)})`, 1.4, [4,3]);
+    // 交点マーカー
+    const drawNode = (lDeg, label) => {
+      const lR=lDeg*DEG;
+      const xecl=Math.cos(lR)*Math.cos(Oa)-Math.cos(MOON_INC)*Math.sin(lR)*Math.sin(Oa);
+      const yecl=Math.cos(lR)*Math.sin(Oa)+Math.cos(MOON_INC)*Math.sin(lR)*Math.cos(Oa);
+      const zecl=Math.sin(MOON_INC)*Math.sin(lR);
+      const pr=project({x:xecl*1.008,y:(yecl*Math.cos(TILT)-zecl*Math.sin(TILT))*1.008,z:(yecl*Math.sin(TILT)+zecl*Math.cos(TILT))*1.008});
+      const a=alpha(pr.depth,0.4,1.0);
+      ctx.save();ctx.globalAlpha=a;
+      ctx.beginPath();ctx.arc(pr.sx,pr.sy,4,0,Math.PI*2);
+      ctx.fillStyle='#99bbdd';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=0.7;ctx.stroke();
+      ctx.fillStyle='rgba(80,120,160,0.9)';ctx.font='11px sans-serif';ctx.fillText(label,pr.sx+6,pr.sy+4);
+      ctx.restore();
+    };
+    drawNode(0,   '☊'); // 昇交点（ノースノード）
+    drawNode(180, '☋'); // 降交点（サウスノード）
+  }
+  // 天体まとめて描画
+  const allObjs = [];
+  STARS.forEach(s => {
+    const is1st = s.mag < 1.5;
+    if ( is1st && !layers.stars1) return;
+    if (!is1st && !layers.stars2) return;
+    const p = raDecToXYZ(s.ra, s.dec, 1.01), pr = project(p);
+    const sz = s.mag<0?4.8:s.mag<0.5?4.0:s.mag<1.0?3.3:s.mag<1.5?2.7:s.mag<2.0?2.1:1.6;
+    allObjs.push({...pr, size:sz, col:is1st?'#ccd8ee':'#8899aa', name:s.name, type:'star', mag:s.mag, is1st});
+  });
+  if (layers.planets) {
+    planets.forEach(pl => {
+      const p = raDecToXYZ(pl.ra, pl.dec, 1.015), pr = project(p);
+      const sz = pl.sun?9 : pl.moon?7 : pl.outer||pl.chiron?3.5 : 5;
+      allObjs.push({...pr, size:sz, col:pl.col, name:pl.name, type:'planet',
+        moon:!!pl.moon, sun:!!pl.sun, outer:!!pl.outer, chiron:!!pl.chiron,
+        moonAge:pl.moon?pl.age:undefined, ra:pl.ra, dec:pl.dec, eclLon:pl.eclLon});
+    });
+  }
+  allObjs.sort((a,b) => a.depth - b.depth);
+  allObjs.forEach(obj => {
+    const a = alpha(obj.depth, 0.3, 1.0);
+    ctx.save(); ctx.globalAlpha = a;
+    if      (obj.sun && layers.sun) drawSun(obj);
+    else if (obj.moon)              drawMoon(obj, obj.moonAge ?? 10);
+    else if (!obj.sun) {
+      ctx.beginPath(); ctx.arc(obj.sx, obj.sy, obj.size, 0, Math.PI*2);
+      ctx.fillStyle = obj.col; ctx.fill();
+    }
+    ctx.restore();
+    const showLabel = obj.sun ? layers.sun
+      : (obj.moon || obj.type==='planet' || (obj.type==='star' && obj.is1st));
+    if (showLabel) {
+      ctx.save(); ctx.globalAlpha = alpha(obj.depth,0.3,1.0) * 0.85;
+      ctx.fillStyle = obj.sun?'#aa6600':obj.moon?'#445577':obj.type==='planet'?'#553311':'#6688aa';
+      ctx.font = (obj.sun||obj.moon) ? 'bold 10px sans-serif' : '10px sans-serif';
+      ctx.fillText(obj.name, obj.sx + obj.size + 3, obj.sy + 3);
+      ctx.restore();
+    }
+    obj._sx = obj.sx; obj._sy = obj.sy;
+  });
+  return allObjs;
+}
+
+/* ────────────────────────────────────────────────────────────
+   アニメーションループ
+──────────────────────────────────────────────────────────── */
+const VIEW_PRESETS = {
+  nep: { rotX: Math.PI + TILT, rotY: 0 },
+  sep: { rotX: TILT,           rotY: 0 },
+};
+
+function animate() {
+  if (lockedView) { const p = VIEW_PRESETS[lockedView]; rotX = p.rotX; rotY = p.rotY; }
+  else if (autoRotate) rotY += 0.003;
+  lastObjs = drawSphere();
+  requestAnimationFrame(animate);
+}
+
+/* ────────────────────────────────────────────────────────────
+   インタラクション
+──────────────────────────────────────────────────────────── */
+function unlockView() {
+  if (!lockedView) return;
+  lockedView = null;
+  ['nep','sep'].forEach(v => {
+    const b = document.getElementById('btn-view-'+v);
+    if (b) b.style.background = '#fff';
+  });
+}
+
+// マウス
+canvas.addEventListener('mousedown', e => { dragging=true; lastMX=e.clientX; lastMY=e.clientY; unlockView(); });
+window.addEventListener('mouseup',   ()  => dragging=false);
+window.addEventListener('mousemove', e  => {
+  if (dragging) { rotY+=(e.clientX-lastMX)*0.01; rotX+=(e.clientY-lastMY)*0.01; lastMX=e.clientX; lastMY=e.clientY; }
+  showTooltip(e.clientX, e.clientY);
+});
+
+// タッチ（シングル：回転、ピンチ：ズーム）
+let pinchDist0 = 0, zoom0 = 1;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) { dragging=true; lastMX=e.touches[0].clientX; lastMY=e.touches[0].clientY; unlockView(); }
+  if (e.touches.length === 2) { dragging=false; pinchDist0=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY); zoom0=zoom; }
+  e.preventDefault();
+}, {passive:false});
+canvas.addEventListener('touchend',   ()  => dragging=false);
+canvas.addEventListener('touchmove',  e   => {
+  if (e.touches.length===1 && dragging) {
+    rotY+=(e.touches[0].clientX-lastMX)*0.01; rotX+=(e.touches[0].clientY-lastMY)*0.01;
+    lastMX=e.touches[0].clientX; lastMY=e.touches[0].clientY;
+  }
+  if (e.touches.length===2) {
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    zoom=Math.max(0.5,Math.min(3,zoom0*d/pinchDist0));
+  }
+  e.preventDefault();
+}, {passive:false});
+
+// ホイールズーム
+canvas.addEventListener('wheel', e => {
+  zoom = Math.max(0.5, Math.min(3, zoom * (e.deltaY>0?0.9:1.1)));
+  e.preventDefault();
+}, {passive:false});
+
+// ツールチップ
+function showTooltip(cx_, cy_) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (cx_-rect.left)*(W/rect.width), my = (cy_-rect.top)*(H/rect.height);
+  let found = null;
+  for (const obj of lastObjs) {
+    const dx=mx-obj._sx, dy=my-obj._sy;
+    if (Math.sqrt(dx*dx+dy*dy) < obj.size+8) { found=obj; break; }
+  }
+  if (found) {
+    tooltip.style.display='block'; tooltip.style.left=(found._sx+14)+'px'; tooltip.style.top=(found._sy-10)+'px';
+    const ecl = raDecToEcl(found.ra||0, found.dec||0);
+    let info = `<b>${found.name}</b><br>`;
+    if (found.sun) info += `太陽 ｜ 黄経 ${(found.eclLon||0).toFixed(1)}°<br>RA ${found.ra.toFixed(1)}° Dec ${found.dec.toFixed(1)}°`;
+    else if (found.moon) info += `月齢 ${(found.moonAge||0).toFixed(1)} 日<br>RA ${found.ra.toFixed(1)}° Dec ${found.dec.toFixed(1)}°`;
+    else if (found.type==='planet') info += `黄経 ${ecl.lam.toFixed(1)}°<br>RA ${found.ra.toFixed(1)}° Dec ${found.dec.toFixed(1)}°`;
+    else info += `等級 ${found.mag!=null?found.mag.toFixed(2)+'等':''}<br>RA ${(found.ra||0).toFixed(1)}° Dec ${(found.dec||0).toFixed(1)}°`;
+    tooltip.innerHTML = info;
+  } else tooltip.style.display='none';
+}
+
+// トグル
+function toggle(n) {
+  layers[n] = !layers[n];
+  document.getElementById('btn-'+n).classList.toggle('toggled-off', !layers[n]);
+}
+
+// 視点
+function setView(mode) {
+  ['nep','sep','free'].forEach(v => {
+    const b = document.getElementById('btn-view-'+v); if(b) b.style.background='#fff';
+  });
+  if (mode==='free') { lockedView=null; return; }
+  lockedView = mode; autoRotate = false;
+  document.getElementById('autorot').checked = false;
+  document.getElementById('btn-view-'+mode).style.background = '#e8f0ff';
+}
+
+/* ────────────────────────────────────────────────────────────
+   コンジャンクション表
+──────────────────────────────────────────────────────────── */
+const SYMBOLS = {
+  '太陽':'☉','月':'☽','水星':'☿','金星':'♀','火星':'♂',
+  '木星':'♃','土星':'♄','キロン':'⚷','天王星':'♅','海王星':'♆','冥王星':'♇',
+  'ノースノード':'☊','サウスノード':'☋',
+};
+const ROW_ORDER = ['太陽','月','水星','金星','火星','木星','土星','キロン','天王星','海王星','冥王星','ノースノード','サウスノード'];
+
+function lonDiff(a, b) { return ((a - b + 540) % 360) - 180; }
+
+function buildConjTable() {
+  const T = currentT;
+  const nnLon = ((125.0445479 - 1934.1362608*T) % 360 + 360) % 360;
+  const snLon = (nnLon + 180) % 360;
+  const nnPos = eclToRaDec(nnLon, 0), snPos = eclToRaDec(snLon, 0);
+
+  const allBodies = [
+    ...planets.map(p => { const ecl=raDecToEcl(p.ra,p.dec); return {name:p.name,lam:ecl.lam,dec:p.dec}; }),
+    {name:'ノースノード', lam:nnLon, dec:nnPos.dec},
+    {name:'サウスノード', lam:snLon, dec:snPos.dec},
+    ...STARS.filter(s=>s.mag<1.5).map(s=>{ const ecl=raDecToEcl(s.ra,s.dec); return {name:s.name,lam:ecl.lam,dec:s.dec}; }),
+  ];
+
+  const tbody = document.getElementById('conj-tbody');
+  tbody.innerHTML='';
+
+  for (const bName of ROW_ORDER) {
+    const row = allBodies.find(b=>b.name===bName); if(!row) continue;
+    const others = allBodies.filter(b=>b.name!==bName);
+    const c1  = others.filter(b=>Math.abs(lonDiff(b.lam,row.lam))<=1.0);
+    const c3  = others.filter(b=>Math.abs(lonDiff(b.lam,row.lam))<=3.0&&Math.abs(lonDiff(b.lam,row.lam))>1.0);
+    const cDec= others.filter(b=>Math.abs(b.dec-row.dec)<=1.0);
+    const fmt = (arr,key='lam')=>arr.length===0
+      ?'<span style="color:#ccc;">—</span>'
+      :arr.map(b=>{
+          const d=key==='lam'?lonDiff(b.lam,row.lam):(b.dec-row.dec);
+          return `<span style="display:block;white-space:nowrap;">${SYMBOLS[b.name]||''}${b.name} <span style="color:#999;font-size:10px;">(${d>0?'+':''}${d.toFixed(1)}°)</span></span>`;
+        }).join('');
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="text-align:center;white-space:nowrap;vertical-align:top;font-size:14px;">
+        <span title="${bName}">${SYMBOLS[bName]||bName}</span>
+        <span style="font-size:9px;color:#999;display:block;">${bName}</span>
+      </td>
+      <td>${fmt(c1)}</td>
+      <td>${fmt(c3)}</td>
+      <td>${fmt(cDec,'dec')}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+/* ────────────────────────────────────────────────────────────
+   初期化
+──────────────────────────────────────────────────────────── */
+resize();
+window.addEventListener('resize', resize);
+setNow();
+animate();
+</script>
+</body>
+</html>
