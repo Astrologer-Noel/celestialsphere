@@ -818,7 +818,7 @@ function drawSphere() {
     if (!is1st && !layers.stars2) return;
     const p = raDecToXYZ(s.ra, s.dec, 1.01), pr = project(p);
     const sz = s.mag<0?4.8:s.mag<0.5?4.0:s.mag<1.0?3.3:s.mag<1.5?2.7:s.mag<2.0?2.1:1.6;
-    allObjs.push({...pr, size:sz, col:is1st?'#ccd8ee':'#8899aa', name:s.name, type:'star', mag:s.mag, is1st});
+    allObjs.push({...pr, size:sz, col:is1st?'#ccd8ee':'#8899aa', name:s.name, type:'star', mag:s.mag, is1st, ra:s.ra, dec:s.dec});
   });
   if (layers.planets) {
     planets.forEach(pl => {
