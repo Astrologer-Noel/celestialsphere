@@ -353,7 +353,7 @@ function eclToXYZ(lam_deg, bet_deg, r) {
   const xe = r * Math.cos(β) * Math.cos(λ);
   const ye = r * Math.cos(β) * Math.sin(λ);
   const ze = r * Math.sin(β);
-  return { x: xe, y: ye * Math.cos(TILT) - ze * Math.sin(TILT), z: ye * Math.sin(TILT) + ze * Math.cos(TILT) };
+  return { x: xe, y: ye * Math.sin(TILT) + ze * Math.cos(TILT), z: ye * Math.cos(TILT) - ze * Math.sin(TILT) };
 }
 /** 赤道座標（RA/Dec） → 直角座標 */
 function raDecToXYZ(ra, dec, r) {
@@ -790,7 +790,7 @@ function drawSphere() {
       const lR = lam * DEG;
       const x0 = Math.cos(lR), y0 = Math.cos(MOON_INC)*Math.sin(lR), z0 = Math.sin(MOON_INC)*Math.sin(lR);
       const xecl = x0*Math.cos(Oa)-y0*Math.sin(Oa), yecl = x0*Math.sin(Oa)+y0*Math.cos(Oa), zecl = z0;
-      moonPts.push({x:xecl*1.008, y:(yecl*Math.cos(TILT)-zecl*Math.sin(TILT))*1.008, z:(yecl*Math.sin(TILT)+zecl*Math.cos(TILT))*1.008});
+      moonPts.push({x:xecl*1.008, y:(yecl*Math.sin(TILT)+zecl*Math.cos(TILT))*1.008, z:(yecl*Math.cos(TILT)-zecl*Math.sin(TILT))*1.008});
     }
     drawSegments(moonPts, d => `rgba(160,190,220,${alpha(d,0.2,0.85)})`, 1.4, [4,3]);
     // 交点マーカー
@@ -799,7 +799,7 @@ function drawSphere() {
       const xecl=Math.cos(lR)*Math.cos(Oa)-Math.cos(MOON_INC)*Math.sin(lR)*Math.sin(Oa);
       const yecl=Math.cos(lR)*Math.sin(Oa)+Math.cos(MOON_INC)*Math.sin(lR)*Math.cos(Oa);
       const zecl=Math.sin(MOON_INC)*Math.sin(lR);
-      const pr=project({x:xecl*1.008,y:(yecl*Math.cos(TILT)-zecl*Math.sin(TILT))*1.008,z:(yecl*Math.sin(TILT)+zecl*Math.cos(TILT))*1.008});
+      const pr=project({x:xecl*1.008,y:(yecl*Math.sin(TILT)+zecl*Math.cos(TILT))*1.008,z:(yecl*Math.cos(TILT)-zecl*Math.sin(TILT))*1.008});
       const a=alpha(pr.depth,0.4,1.0);
       ctx.save();ctx.globalAlpha=a;
       ctx.beginPath();ctx.arc(pr.sx,pr.sy,4,0,Math.PI*2);
@@ -858,8 +858,8 @@ function drawSphere() {
    アニメーションループ
 ──────────────────────────────────────────────────────────── */
 const VIEW_PRESETS = {
-  nep: { rotX: Math.PI + TILT, rotY: 0 },
-  sep: { rotX: TILT,           rotY: 0 },
+  nep: { rotX:  Math.PI/2 - TILT, rotY: 0 },
+  sep: { rotX: -Math.PI/2 - TILT, rotY: 0 },
 };
 
 function animate() {
