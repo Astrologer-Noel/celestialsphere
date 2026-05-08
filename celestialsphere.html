@@ -950,7 +950,7 @@ function showTooltip(cx_, cy_) {
     tooltip.style.display='block'; tooltip.style.left=(found._sx+14)+'px'; tooltip.style.top=(found._sy-10)+'px';
     const ecl = raDecToEcl(found.ra||0, found.dec||0);
     let info = `<b>${found.name}</b><br>`;
-    if (found.sun) info += `太陽 ｜ 黄経 ${(found.eclLon||0).toFixed(1)}°<br>RA ${found.ra.toFixed(1)}° Dec ${found.dec.toFixed(1)}°`;
+    if (found.sun) info += `黄経 ${(found.eclLon||0).toFixed(1)}°<br>RA ${found.ra.toFixed(1)}° Dec ${found.dec.toFixed(1)}°`;
     else if (found.moon) info += `月齢 ${(found.moonAge||0).toFixed(1)} 日<br>黄経 ${(found.eclLon||0).toFixed(1)}° 黄緯 ${(found.eclLat||0).toFixed(1)}°<br>RA ${(found.ra||0).toFixed(1)}° Dec ${(found.dec||0).toFixed(1)}°`;
     else if (found.type==='planet') info += `黄経 ${(found.eclLon||0).toFixed(1)}° 黄緯 ${(found.eclLat||0).toFixed(1)}°<br>RA ${found.ra.toFixed(1)}° Dec ${found.dec.toFixed(1)}°`;
     else info += `等級 ${found.mag!=null?found.mag.toFixed(2)+'等':''}<br>RA ${(found.ra||0).toFixed(1)}° Dec ${(found.dec||0).toFixed(1)}°`;
