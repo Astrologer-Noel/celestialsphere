@@ -484,7 +484,10 @@ function plutoPosition(T) {
   const pz=r2*Math.sin(betR)-e.z;
   const glam=((Math.atan2(py,px)/DEG)%360+360)%360;
   const gbet=Math.atan2(pz,Math.sqrt(px*px+py*py))/DEG;
-  return { lam: glam, bet: gbet, ...eclToRaDec(glam, gbet) };（2060 Chiron）軌道計算 */
+  return { lam: glam, bet: gbet, ...eclToRaDec(glam, gbet) };
+}
+
+/** キロン（2060 Chiron）軌道計算 */
 function chironPosition(T) {
   const JD = 2451545.0 + T * 36525.0;
   const a=13.6448, e=0.3823;
@@ -506,6 +509,7 @@ function chironPosition(T) {
   const glam=((Math.atan2(dy,dx)/DEG)%360+360)%360;
   const gbet=Math.atan2(dz,Math.sqrt(dx*dx+dy*dy))/DEG;
   return { lam: glam, bet: gbet, ...eclToRaDec(glam, gbet) };
+}
 
 /* ────────────────────────────────────────────────────────────
    天体一覧
