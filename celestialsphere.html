@@ -172,33 +172,6 @@ canvas { display: block; width: 100%; }
   flex-shrink: 0;
 }
 
-/* ── コンジャンクション表 ── */
-.conj-section {
-  margin-top: 1.2rem;
-  overflow-x: auto;
-}
-#conj-table {
-  border-collapse: collapse;
-  font-size: 11px;
-  color: #444;
-  width: 100%;
-  min-width: 480px;
-}
-#conj-table th {
-  background: #f3f5f9;
-  border: 1px solid #ddd;
-  padding: 5px 10px;
-  text-align: center;
-  white-space: nowrap;
-  font-weight: 600;
-  color: #555;
-}
-#conj-table td {
-  border: 1px solid #e8e8e8;
-  padding: 4px 10px;
-  vertical-align: top;
-}
-
 /* ── 注記 ── */
 .note {
   font-size: 11px;
@@ -311,29 +284,11 @@ label.chk-label {
     <div class="legend-item"><div class="leg-line" style="background:#3388ff;opacity:0.6;"></div>地軸</div>
   </div>
 
-  <!-- ── コンジャンクション表 ── -->
-  <div class="section-title" style="margin-top:1.4rem;">🔗 コンジャンクション表（現在の日時）</div>
-  <div class="conj-section">
-    <table id="conj-table">
-      <thead>
-        <tr>
-          <th>天体</th>
-          <th>黄経 ±1° 以内</th>
-          <th>黄経 ±3° 以内</th>
-          <th>赤緯 ±1° 以内</th>
-        </tr>
-      </thead>
-      <tbody id="conj-tbody"></tbody>
-    </table>
-  </div>
-
   <!-- ── 注記 ── -->
   <p class="note">
-    天体位置計算：Jean Meeus <em>「Astronomical Algorithms」</em> (Willmann-Bell, 1991) に基づく近似式 ／
+    天体位置計算：NASA JPL 簡易軌道要素（Table 1）に基づくケプラー計算 ／
     恒星データ：Yale Bright Star Catalogue / Hipparcos カタログ相当値<br>
-    NASA JPL 簡易データ使用のため、数分角〜0.5° 程度の誤差があります。
-    特に天王星・海王星・冥王星の位置に数日〜1ヶ月程度の誤差が生じます。
-    精密な天文計算にはご使用にならないください。
+    数分角〜0.5° 程度の誤差があります。精密な天文計算にはご使用にならないください。
   </p>
 </div>
 
@@ -428,17 +383,20 @@ function moonPosition(T) {
   return { lam, bet, ra: eq.ra, dec: eq.dec };
 }
 
-/** 惑星ケプラー軌道要素（J2000.0） */
+/** 惑星ケプラー軌道要素（J2000.0） NASA JPL Table 1 */
 const PLANET_EL = {
-  Mercury: [0.38710, 0, 0.20563,  0.00002,  7.00498, -0.00590, 252.25032, 149472.67411,  77.45779,  0.15940, 48.33076, -0.12534],
-  Venus:   [0.72333, 0, 0.00677, -0.00005,  3.39467, -0.00788, 181.97973,  58517.81538, 131.60246,  0.00268, 76.67984, -0.27769],
-  Earth:   [1.00000, 0, 0.01671, -0.00004, -0.00015, -0.01295, 100.46457,  35999.37245, 102.93768,  0.32327,   0.0000,   0.0000],
-  Mars:    [1.52366, 0, 0.09340,  0.00009,  1.84969, -0.00811, 355.45332,  19140.30268, 336.04084,  0.44441, 49.55953, -0.29257],
-  Jupiter: [5.20336, 0, 0.04839, -0.00013,  1.30530, -0.00183,  34.40438,   3034.74612,  14.72847,  0.21066,100.47390,  0.20469],
-  Saturn:  [9.53707, 0, 0.05415, -0.00050,  2.48446,  0.00412,  49.94432,   1222.49309,  92.43194, -0.36762,113.66242, -0.28889],
-  Uranus:  [19.1914, 0, 0.04717, -0.00003,  0.76986, -0.00529, 313.23218,    428.48202, 170.96424,  0.40667, 74.01693,  0.04240],
-  Neptune: [30.0690, 0, 0.00859,  0.00005,  1.76917, -0.00956, -55.12002,    218.45945,  44.96476, -0.32544,131.78422, -0.00946],
+  Mercury: [0.38709927, 0.00000037, 0.20563593,  0.00001906,  7.00497902, -0.00594749, 252.25032350, 149472.67411175,  77.45779628,  0.16047689, 48.33076593, -0.12534081],
+  Venus:   [0.72333566, 0.00000390, 0.00677672, -0.00004107,  3.39467605, -0.00078890, 181.97909950,  58517.81538729, 131.60246718,  0.00268329, 76.67984255, -0.27769418],
+  Earth:   [1.00000261, 0.00000562, 0.01671123, -0.00004392, -0.00001531, -0.01294668, 100.46457166,  35999.37244981, 102.93768193,  0.32327364,  0.00000000,  0.00000000],
+  Mars:    [1.52371034, 0.00001847, 0.09339410,  0.00007882,  1.84969142, -0.00813131,  -4.55343205,  19140.30268499, -23.94362959,  0.44441088, 49.55953891, -0.29257343],
+  Jupiter: [5.20288700,-0.00011607, 0.04838624, -0.00013253,  1.30439695, -0.00183714,  34.39644051,   3034.74612775,  14.72847983,  0.21252668,100.47390909,  0.20469106],
+  Saturn:  [9.53667594,-0.00125060, 0.05386179, -0.00050991,  2.48599187,  0.00193609,  49.95424423,   1222.49362201,  92.59887831, -0.41897216,113.66242448, -0.28867794],
+  Uranus:  [19.18916464,-0.00196176,0.04725744, -0.00004397,  0.77263783, -0.00242939, 313.23810451,    428.48202785, 170.95427630,  0.40805281, 74.01692503,  0.04240589],
+  Neptune: [30.06992276, 0.00026291,0.00859048,  0.00005105,  1.77004347,  0.00035372, -55.12002969,    218.45945325,  44.96476227, -0.32241464,131.78422574, -0.00508664],
+  // 冥王星：JPL Small-Body Database軌道要素（ホロスコープページと同一）
+  Pluto:   [39.48211675,-0.00031596,0.24882730,  0.00005170, 17.14001206,  0.00004818, 238.92903833,    145.20780515, 224.06891629, -0.04062942,110.30393684, -0.01183482],
 };
+
 /** 軌道要素→太陽中心XYZ */
 function keplerXYZ(name, T) {
   const el = PLANET_EL[name]; if (!el) return null;
@@ -469,32 +427,21 @@ function planetPosition(name, T) {
   return { lam, bet, ...eclToRaDec(lam, bet) };
 }
 
-/** 冥王星（簡易式） */
+/** 冥王星：NASA JPL Table 1 ケプラー軌道要素による計算（ホロスコープと同方式） */
 function plutoPosition(T) {
-  const J=34.35+3034.9057*T, P=238.96+144.9600*T;
-  const Jr=J*DEG;
-  let lam=P+(-19.799+19.848*T)*Math.sin(Jr)+(0.897-4.956*T)*Math.sin(2*Jr)+(0.610+1.211*T)*Math.sin(3*Jr)-12.326*Math.cos(Jr);
-  let bet=-3.908+(6.018+0.010*T)*Math.cos(Jr)+(-0.066+0.014*T)*Math.cos(2*Jr)+(-0.050+0.022*T)*Math.sin(Jr);
-  lam=((lam%360)+360)%360;
-  const e = keplerXYZ('Earth', T);
-  const r2 = 39.5; // 冥王星の平均距離（AU）
-  const lamR=lam*DEG, betR=bet*DEG;
-  const px=r2*Math.cos(betR)*Math.cos(lamR)-e.x;
-  const py=r2*Math.cos(betR)*Math.sin(lamR)-e.y;
-  const pz=r2*Math.sin(betR)-e.z;
-  const glam=((Math.atan2(py,px)/DEG)%360+360)%360;
-  const gbet=Math.atan2(pz,Math.sqrt(px*px+py*py))/DEG;
-  return { lam: glam, bet: gbet, ...eclToRaDec(glam, gbet) };
+  return planetPosition('Pluto', T);
 }
 
-/** キロン（2060 Chiron）軌道計算 */
+/** キロン（2060 Chiron）軌道計算
+ *  軌道要素: JPL Small-Body Database, J2000.0エポック（ホロスコープページと同一）
+ *  a=13.6980 AU, e=0.37721, I=6.9311°, ω=339.4934°, Ω=209.3750°
+ *  M0=27.534°（J2000.0基準）, 周期=50.71年=18514日 */
 function chironPosition(T) {
-  const JD = 2451545.0 + T * 36525.0;
-  const a=13.6448, e=0.3823;
-  const i=6.9305*DEG, O=209.123*DEG, w=339.595*DEG;
-  const n=360.0/(Math.pow(a,1.5)*365.25);
-  const M0=43.823*DEG, dJD=JD-2459600.5;
-  let M=((M0+n*dJD*DEG)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+  const a=13.6980, e=0.37721;
+  const i=6.9311*DEG, O=209.3750*DEG, w=339.4934*DEG;
+  const n=360/18514; // 平均運動 °/day
+  const dJD = T * 36525.0; // J2000.0からの経過日数
+  let M = ((27.534 + n*dJD) % 360 + 360) % 360; M *= DEG; // ラジアンへ
   let E=M; for(let k=0;k<15;k++) E=M+e*Math.sin(E);
   const nu=2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2),Math.sqrt(1-e)*Math.cos(E/2));
   const r=a*(1-e*Math.cos(E)), xO=r*Math.cos(nu), yO=r*Math.sin(nu);
@@ -502,8 +449,6 @@ function chironPosition(T) {
   const xe=(cosO*cosw-sinO*sinw*cosI)*xO+(-cosO*sinw-sinO*cosw*cosI)*yO;
   const ye=(sinO*cosw+cosO*sinw*cosI)*xO+(-sinO*sinw+cosO*cosw*cosI)*yO;
   const ze=(sinw*sinI)*xO+(cosw*sinI)*yO;
-  let lam=Math.atan2(ye,xe)/DEG, bet=Math.atan2(ze,Math.sqrt(xe*xe+ye*ye))/DEG;
-  lam=((lam%360)+360)%360;
   const earth = keplerXYZ('Earth', T);
   const dx=xe-earth.x, dy=ye-earth.y, dz=ze-earth.z;
   const glam=((Math.atan2(dy,dx)/DEG)%360+360)%360;
@@ -618,7 +563,6 @@ function applyDatetime() {
   document.getElementById('jd-display').textContent =
     `JD ${currentJD.toFixed(4)}  T = ${currentT.toFixed(6)} cy`;
   updatePlanetPositions();
-  buildConjTable();
 }
 
 function updatePlanetPositions() {
@@ -787,7 +731,18 @@ function drawSphere() {
     ctx.beginPath(); ctx.arc(pr.sx, pr.sy, 5, 0, Math.PI*2);
     ctx.fillStyle = '#ffcc00'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.8; ctx.stroke();
     ctx.fillStyle = 'rgba(150,100,0,0.95)'; ctx.font = '10px sans-serif';
-    ctx.fillText(n.label, pr.sx + n.offset[0], pr.sy + n.offset[1]);
+    // ラベルを円の外側へ：中心からドットへの方向ベクトルで押し出す
+    const ddx = pr.sx - cx, ddy = pr.sy - cy;
+    const dist = Math.sqrt(ddx*ddx + ddy*ddy);
+    if (dist > 2) {
+      const nx = ddx / dist, ny = ddy / dist;
+      const lx = pr.sx + nx * 14, ly = pr.sy + ny * 14;
+      ctx.textAlign    = nx >  0.3 ? 'left' : nx < -0.3 ? 'right' : 'center';
+      ctx.textBaseline = Math.abs(nx) <= 0.3 ? (ny < 0 ? 'bottom' : 'top') : 'middle';
+      ctx.fillText(n.label, lx, ly);
+    } else {
+      ctx.fillText(n.label, pr.sx + n.offset[0], pr.sy + n.offset[1]);
+    }
     ctx.restore();
   });
   // 黄道極軸
@@ -973,59 +928,6 @@ function setView(mode) {
   lockedView = mode; autoRotate = false;
   document.getElementById('autorot').checked = false;
   document.getElementById('btn-view-'+mode).style.background = '#e8f0ff';
-}
-
-/* ────────────────────────────────────────────────────────────
-   コンジャンクション表
-──────────────────────────────────────────────────────────── */
-const SYMBOLS = {
-  '太陽':'☉','月':'☽','水星':'☿','金星':'♀','火星':'♂',
-  '木星':'♃','土星':'♄','キロン':'⚷','天王星':'♅','海王星':'♆','冥王星':'♇',
-  'ノースノード':'☊','サウスノード':'☋',
-};
-const ROW_ORDER = ['太陽','月','水星','金星','火星','木星','土星','キロン','天王星','海王星','冥王星','ノースノード','サウスノード'];
-
-function lonDiff(a, b) { return ((a - b + 540) % 360) - 180; }
-
-function buildConjTable() {
-  const T = currentT;
-  const nnLon = ((125.0445479 - 1934.1362608*T) % 360 + 360) % 360;
-  const snLon = (nnLon + 180) % 360;
-  const nnPos = eclToRaDec(nnLon, 0), snPos = eclToRaDec(snLon, 0);
-
-  const allBodies = [
-    ...planets.map(p => { const ecl=raDecToEcl(p.ra,p.dec); return {name:p.name,lam:ecl.lam,dec:p.dec}; }),
-    {name:'ノースノード', lam:nnLon, dec:nnPos.dec},
-    {name:'サウスノード', lam:snLon, dec:snPos.dec},
-    ...STARS.filter(s=>s.mag<1.5).map(s=>{ const ecl=raDecToEcl(s.ra,s.dec); return {name:s.name,lam:ecl.lam,dec:s.dec}; }),
-  ];
-
-  const tbody = document.getElementById('conj-tbody');
-  tbody.innerHTML='';
-
-  for (const bName of ROW_ORDER) {
-    const row = allBodies.find(b=>b.name===bName); if(!row) continue;
-    const others = allBodies.filter(b=>b.name!==bName);
-    const c1  = others.filter(b=>Math.abs(lonDiff(b.lam,row.lam))<=1.0);
-    const c3  = others.filter(b=>Math.abs(lonDiff(b.lam,row.lam))<=3.0&&Math.abs(lonDiff(b.lam,row.lam))>1.0);
-    const cDec= others.filter(b=>Math.abs(b.dec-row.dec)<=1.0);
-    const fmt = (arr,key='lam')=>arr.length===0
-      ?'<span style="color:#ccc;">—</span>'
-      :arr.map(b=>{
-          const d=key==='lam'?lonDiff(b.lam,row.lam):(b.dec-row.dec);
-          return `<span style="display:block;white-space:nowrap;">${SYMBOLS[b.name]||''}${b.name} <span style="color:#999;font-size:10px;">(${d>0?'+':''}${d.toFixed(1)}°)</span></span>`;
-        }).join('');
-    const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td style="text-align:center;white-space:nowrap;vertical-align:top;font-size:14px;">
-        <span title="${bName}">${SYMBOLS[bName]||bName}</span>
-        <span style="font-size:9px;color:#999;display:block;">${bName}</span>
-      </td>
-      <td>${fmt(c1)}</td>
-      <td>${fmt(c3)}</td>
-      <td>${fmt(cDec,'dec')}</td>`;
-    tbody.appendChild(tr);
-  }
 }
 
 /* ────────────────────────────────────────────────────────────
